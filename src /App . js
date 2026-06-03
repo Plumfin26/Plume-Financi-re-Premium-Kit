@@ -1,0 +1,397 @@
+import { useState } from "react";
+
+const colors = {
+  rose: "#F2C4CE",
+  beige: "#F5E6D3",
+  creme: "#FAF7F2",
+  brown: "#8B6355",
+  gold: "#C9A84C",
+  text: "#3D2B1F",
+  soft: "#7a6058",
+};
+
+const fonts = {
+  serif: "'Georgia', serif",
+  sans: "'Helvetica Neue', sans-serif",
+};
+
+const sections = [
+  "Accueil",
+  "Budget Planner",
+  "3 Poches",
+  "Tracker",
+  "Mindset",
+  "Routine",
+  "30 Jours Glow Up",
+  "Checklist",
+];
+
+const months = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+const categories = ["🛒 Alimentation","🚌 Transport","👗 Shopping","💄 Beauté","🏠 Logement","📱 Abonnements","🎉 Sorties","📚 Formation","💊 Santé","✨ Plaisir divers"];
+const days30 = [
+  "Note tes 3 dernières dépenses inutiles","Calcule ton revenu net ce mois","Crée tes 3 Poches d'argent","Fixe ton objectif épargne du mois","Supprime 1 abonnement inutilisé",
+  "Fais le point sur tes dettes (si applicable)","Économise 500 FCFA / 1€ aujourd'hui","Lis 10 min sur la finance personnelle","Identifie ta dépense émotionnelle principale","Prépare ton budget de la semaine",
+  "Vérifie ton solde bancaire","Transfère dans ta poche épargne","Note 3 choses que l'argent t'a permis","Refuse une dépense impulsive aujourd'hui","Cherche 1 moyen d'économiser ce mois",
+  "Calcule combien tu as épargné depuis le 1er","Offre-toi quelque chose dans ton budget plaisir","Automatise 1 transfert épargne si possible","Fais ta routine financière hebdomadaire","Partage 1 conseil finance avec une amie",
+  "Vérifie tes objectifs du mois","Note tes progrès dans ton tracker","Identifie 1 habitude à changer ce mois","Évalue ta poche dépenses essentielles","Planifie les dépenses de la semaine prochaine",
+  "Fais le bilan mi-parcours","Ajuste ton budget si besoin","Célèbre 1 victoire financière de ce mois","Prépare le budget du mois prochain","Écris ta vision financière pour dans 1 an 💖",
+];
+const habits = [
+  "Je consulte mon budget chaque semaine","Je transfère dans mon épargne dès que je suis payée","Je réfléchis 24h avant un achat non prévu","Je connais mes dépenses fixes exactement","Je n'achète pas par ennui ou émotion",
+  "J'ai un objectif financier clair ce mois","Je note mes dépenses régulièrement","Je parle d'argent sans honte ni tabou","Je célèbre mes petites victoires financières","J'investis dans ma formation et ma croissance",
+];
+
+export default function App() {
+  const [active, setActive] = useState(0);
+  const [month, setMonth] = useState(new Date().getMonth());
+  const [income, setIncome] = useState("");
+  const [expenses, setExpenses] = useState(categories.map(() => ""));
+  const [savings, setSavings] = useState("");
+  const [goal, setGoal] = useState("");
+  const [goalName, setGoalName] = useState("");
+  const [poche1, setPoche1] = useState("");
+  const [poche2, setPoche2] = useState("");
+  const [poche3, setPoche3] = useState("");
+  const [trackerRows, setTrackerRows] = useState(Array(8).fill({ label: "", amount: "", cat: "" }).map(r => ({ ...r })));
+  const [checkedDays, setCheckedDays] = useState(Array(30).fill(false));
+  const [checkedHabits, setCheckedHabits] = useState(Array(10).fill(false));
+  const [mindsetNotes, setMindsetNotes] = useState(["", "", ""]);
+  const [routine, setRoutine] = useState({ depenses: false, ajustement: false, objectif: "", note: "" });
+
+  const totalExpenses = expenses.reduce((s, v) => s + (parseFloat(v) || 0), 0);
+  const remaining = (parseFloat(income) || 0) - totalExpenses - (parseFloat(savings) || 0);
+  const p1 = parseFloat(poche1) || 0;
+  const p2 = parseFloat(poche2) || 0;
+  const p3 = parseFloat(poche3) || 0;
+  const totalPoches = p1 + p2 + p3;
+  const incomeNum = parseFloat(income) || 0;
+
+  const goldLine = <div style={{ height: 1, background: `linear-gradient(to right, transparent, ${colors.gold}, transparent)`, margin: "18px 0" }} />;
+
+  const card = (children, extra = {}) => (
+    <div style={{ background: "#fff", borderRadius: 16, padding: "24px 28px", marginBottom: 20, boxShadow: "0 2px 16px rgba(139,99,85,0.07)", border: `1px solid ${colors.rose}`, ...extra }}>
+      {children}
+    </div>
+  );
+
+  const label = (text) => <div style={{ fontFamily: fonts.sans, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.gold, marginBottom: 6 }}>{text}</div>;
+  const input = (val, onChange, placeholder = "", type = "text") => (
+    <input type={type} value={val} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      style={{ width: "100%", border: "none", borderBottom: `1.5px solid ${colors.rose}`, padding: "8px 4px", fontFamily: fonts.sans, fontSize: 14, color: colors.text, background: "transparent", outline: "none", boxSizing: "border-box" }} />
+  );
+
+  const sectionTitle = (t, sub) => (
+    <div style={{ textAlign: "center", marginBottom: 28 }}>
+      <div style={{ fontFamily: fonts.serif, fontSize: 26, color: colors.brown, marginBottom: 6 }}>{t}</div>
+      {sub && <div style={{ fontFamily: fonts.sans, fontSize: 13, color: colors.soft }}>{sub}</div>}
+      {goldLine}
+    </div>
+  );
+
+  const progressBar = (val, max, color = colors.rose) => {
+    const pct = Math.min(100, max > 0 ? (val / max) * 100 : 0);
+    return (
+      <div style={{ background: colors.beige, borderRadius: 20, height: 10, overflow: "hidden", marginTop: 6 }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 20, transition: "width 0.4s" }} />
+      </div>
+    );
+  };
+
+  // NAV
+  const nav = (
+    <div style={{ display: "flex", overflowX: "auto", gap: 8, padding: "12px 16px", background: "#fff", borderBottom: `1px solid ${colors.rose}`, position: "sticky", top: 0, zIndex: 100 }}>
+      {sections.map((s, i) => (
+        <button key={i} onClick={() => setActive(i)}
+          style={{ whiteSpace: "nowrap", padding: "7px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontFamily: fonts.sans, fontSize: 12,
+            background: active === i ? colors.gold : colors.creme, color: active === i ? "#fff" : colors.brown, fontWeight: active === i ? 700 : 400, transition: "all 0.2s" }}>
+          {s}
+        </button>
+      ))}
+    </div>
+  );
+
+  // PAGES
+  const pages = [
+    // 0 - ACCUEIL
+    <div style={{ padding: "40px 24px", textAlign: "center" }}>
+      <div style={{ fontFamily: fonts.sans, fontSize: 11, letterSpacing: 3, color: colors.gold, marginBottom: 12 }}>✦ PLUME FINANCIÈRE ✦</div>
+      <div style={{ fontFamily: fonts.serif, fontSize: 32, color: colors.brown, lineHeight: 1.3, marginBottom: 8 }}>Premium Kit™</div>
+      <div style={{ fontFamily: fonts.serif, fontSize: 16, color: colors.soft, fontStyle: "italic", marginBottom: 24 }}>Budget & Wealth System pour Femme Organisée</div>
+      {goldLine}
+      <div style={{ background: colors.creme, borderRadius: 20, padding: "28px 24px", marginBottom: 24, textAlign: "left" }}>
+        <div style={{ fontFamily: fonts.serif, fontSize: 17, color: colors.brown, marginBottom: 12 }}>Bienvenue, belle âme organisée 💖</div>
+        <div style={{ fontFamily: fonts.sans, fontSize: 14, color: colors.soft, lineHeight: 1.8 }}>
+          Ce kit a été créé pour toi — la femme qui veut reprendre le contrôle de son argent sans se sentir coupable, sans se priver de tout, et sans se noyer dans des tableaux compliqués.<br /><br />
+          Ici, les finances deviennent un acte de soin envers toi-même. Utilise ce kit à ton rythme. Une page à la fois. Un franc CFA à la fois. 🌸
+        </div>
+      </div>
+      {card(
+        <div>
+          <div style={{ fontFamily: fonts.sans, fontSize: 12, letterSpacing: 2, color: colors.gold, marginBottom: 14 }}>AVEC CE KIT, TU VAS :</div>
+          {["Savoir exactement où va ton argent chaque mois","Épargner sans te priver de plaisir","Arrêter de culpabiliser pour tes dépenses","Créer une routine financière douce et constante","Devenir la femme organisée que tu veux être"].map((t, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10, fontFamily: fonts.sans, fontSize: 14, color: colors.text }}>
+              <span style={{ color: colors.gold, fontSize: 16 }}>✦</span>{t}
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ fontFamily: fonts.sans, fontSize: 12, color: colors.soft, letterSpacing: 1 }}>
+        Navigue entre les sections via le menu en haut 👆
+      </div>
+    </div>,
+
+    // 1 - BUDGET PLANNER
+    <div style={{ padding: "28px 20px" }}>
+      {sectionTitle("Budget Planner", "Planifie ton mois avec élégance")}
+      {card(<>
+        {label("Mois")}
+        <select value={month} onChange={e => setMonth(+e.target.value)}
+          style={{ width: "100%", border: "none", borderBottom: `1.5px solid ${colors.rose}`, padding: "8px 4px", fontFamily: fonts.sans, fontSize: 14, color: colors.text, background: "transparent", outline: "none" }}>
+          {months.map((m, i) => <option key={i} value={i}>{m}</option>)}
+        </select>
+      </>)}
+      {card(<>
+        {label("Revenu net du mois")}
+        {input(income, setIncome, "Ex: 150 000 FCFA", "number")}
+        {income && <div style={{ marginTop: 8, fontFamily: fonts.sans, fontSize: 12, color: colors.soft }}>Revenu enregistré ✦</div>}
+      </>)}
+      {card(<>
+        <div style={{ fontFamily: fonts.serif, fontSize: 16, color: colors.brown, marginBottom: 16 }}>Mes dépenses par catégorie</div>
+        {categories.map((cat, i) => (
+          <div key={i} style={{ marginBottom: 14 }}>
+            {label(cat)}
+            {input(expenses[i], v => { const n = [...expenses]; n[i] = v; setExpenses(n); }, "Montant", "number")}
+          </div>
+        ))}
+      </>)}
+      {card(<>
+        {label("Épargne prévue ce mois")}
+        {input(savings, setSavings, "Montant à mettre de côté", "number")}
+      </>)}
+      {card(<>
+        <div style={{ fontFamily: fonts.serif, fontSize: 16, color: colors.brown, marginBottom: 16 }}>Récapitulatif — {months[month]}</div>
+        {[["Revenu", incomeNum, colors.gold], ["Dépenses totales", totalExpenses, colors.rose], ["Épargne", parseFloat(savings)||0, "#a8d5b5"]].map(([l, v, c]) => (
+          <div key={l} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontFamily: fonts.sans, fontSize: 13, color: colors.text }}>
+              <span>{l}</span><span style={{ fontWeight: 700 }}>{v.toLocaleString()} FCFA</span>
+            </div>
+            {progressBar(v, incomeNum, c)}
+          </div>
+        ))}
+        {goldLine}
+        <div style={{ display: "flex", justifyContent: "space-between", fontFamily: fonts.serif, fontSize: 18, color: remaining >= 0 ? colors.brown : "#e07070" }}>
+          <span>Reste disponible</span>
+          <span>{remaining.toLocaleString()} FCFA</span>
+        </div>
+        {remaining < 0 && <div style={{ marginTop: 8, fontFamily: fonts.sans, fontSize: 12, color: "#e07070" }}>⚠️ Tu dépenses plus que tu ne gagnes. Ajuste tes catégories.</div>}
+        {remaining >= 0 && income && <div style={{ marginTop: 8, fontFamily: fonts.sans, fontSize: 12, color: "#6aaa80" }}>✦ Bravo ! Tu as un budget équilibré ce mois.</div>}
+      </>)}
+    </div>,
+
+    // 2 - 3 POCHES
+    <div style={{ padding: "28px 20px" }}>
+      {sectionTitle("Système 3 Poches d'Argent", "Gère sans frustration, dépense sans culpabilité")}
+      <div style={{ background: colors.creme, borderRadius: 16, padding: "20px", marginBottom: 20, fontFamily: fonts.sans, fontSize: 13, color: colors.soft, lineHeight: 1.8 }}>
+        Le principe est simple : dès que tu es payée, tu répartis ton argent en 3 poches. Chaque poche a un rôle précis. Tu ne mélangeas plus jamais tout.
+      </div>
+      {[
+        { num: 1, name: "Dépenses Essentielles", desc: "Loyer, nourriture, transport, factures. Ce dont tu as besoin pour vivre.", emoji: "🏠", color: colors.beige, val: poche1, set: setPoche1, pct: "50-60%" },
+        { num: 2, name: "Épargne & Objectifs", desc: "Ton futur. Ton matelas de sécurité. Tes projets. Tu paies d'abord ton futur moi.", emoji: "💰", color: "#f0ede8", val: poche2, set: setPoche2, pct: "20-30%" },
+        { num: 3, name: "Plaisir Sans Culpabilité", desc: "Shopping, sorties, beauté, gâteries. Tu le mérites — dans ta limite.", emoji: "✨", color: "#fde8f0", val: poche3, set: setPoche3, pct: "10-20%" },
+      ].map(p => (
+        <div key={p.num} style={{ background: p.color, borderRadius: 16, padding: "22px", marginBottom: 16, border: `1px solid ${colors.rose}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.brown }}>{p.emoji} Poche {p.num}</div>
+            <div style={{ background: colors.gold, color: "#fff", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontFamily: fonts.sans }}>{p.pct}</div>
+          </div>
+          <div style={{ fontFamily: fonts.serif, fontSize: 15, color: colors.brown, marginBottom: 4 }}>{p.name}</div>
+          <div style={{ fontFamily: fonts.sans, fontSize: 12, color: colors.soft, marginBottom: 14 }}>{p.desc}</div>
+          {label("Montant alloué")}
+          {input(p.val, p.set, "Ex: 75 000 FCFA", "number")}
+        </div>
+      ))}
+      {(p1 + p2 + p3 > 0) && card(<>
+        <div style={{ fontFamily: fonts.serif, fontSize: 16, color: colors.brown, marginBottom: 14 }}>Répartition de tes poches</div>
+        {[["🏠 Essentielles", p1, colors.beige], ["💰 Épargne", p2, "#c5e8d0"], ["✨ Plaisir", p3, colors.rose]].map(([n, v, c]) => (
+          <div key={n} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontFamily: fonts.sans, fontSize: 13, color: colors.text }}>
+              <span>{n}</span><span>{v.toLocaleString()} FCFA</span>
+            </div>
+            {progressBar(v, totalPoches, c)}
+          </div>
+        ))}
+        {incomeNum > 0 && <div style={{ marginTop: 12, fontFamily: fonts.sans, fontSize: 12, color: totalPoches > incomeNum ? "#e07070" : "#6aaa80" }}>
+          {totalPoches > incomeNum ? "⚠️ Total supérieur à ton revenu. Rééquilibre tes poches." : `✦ Il reste ${(incomeNum - totalPoches).toLocaleString()} FCFA non alloués.`}
+        </div>}
+      </>)}
+    </div>,
+
+    // 3 - TRACKER
+    <div style={{ padding: "28px 20px" }}>
+      {sectionTitle("Tracker Financier", "Suis tes dépenses avec style")}
+      {card(<>
+        <div style={{ fontFamily: fonts.serif, fontSize: 16, color: colors.brown, marginBottom: 16 }}>Objectif financier du mois</div>
+        {label("Nom de l'objectif")}
+        {input(goalName, setGoalName, "Ex: Rembourser un prêt, Voyage, Téléphone...")}
+        <div style={{ marginTop: 12 }} />
+        {label("Montant cible")}
+        {input(goal, setGoal, "Ex: 50 000 FCFA", "number")}
+        {goal && savings && <>
+          <div style={{ marginTop: 16, fontFamily: fonts.sans, fontSize: 13, color: colors.text }}>
+            Progression : {Math.min(100, Math.round(((parseFloat(savings)||0) / (parseFloat(goal)||1)) * 100))}%
+          </div>
+          {progressBar(parseFloat(savings)||0, parseFloat(goal)||1, colors.gold)}
+          <div style={{ marginTop: 6, fontFamily: fonts.sans, fontSize: 12, color: colors.soft }}>
+            Basé sur ton épargne mensuelle du Budget Planner
+          </div>
+        </>}
+      </>)}
+      {card(<>
+        <div style={{ fontFamily: fonts.serif, fontSize: 16, color: colors.brown, marginBottom: 16 }}>Journal des dépenses</div>
+        {trackerRows.map((row, i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14, paddingBottom: 14, borderBottom: i < 7 ? `1px solid ${colors.beige}` : "none" }}>
+            <div>
+              {label("Description")}
+              {input(row.label, v => { const n = [...trackerRows]; n[i] = { ...n[i], label: v }; setTrackerRows(n); }, "Ex: Courses")}
+            </div>
+            <div>
+              {label("Montant")}
+              {input(row.amount, v => { const n = [...trackerRows]; n[i] = { ...n[i], amount: v }; setTrackerRows(n); }, "FCFA", "number")}
+            </div>
+          </div>
+        ))}
+        <button onClick={() => setTrackerRows([...trackerRows, { label: "", amount: "", cat: "" }])}
+          style={{ background: colors.rose, border: "none", borderRadius: 20, padding: "8px 20px", fontFamily: fonts.sans, fontSize: 13, color: colors.brown, cursor: "pointer", marginTop: 8 }}>
+          + Ajouter une dépense
+        </button>
+        {goldLine}
+        <div style={{ display: "flex", justifyContent: "space-between", fontFamily: fonts.serif, fontSize: 16, color: colors.brown }}>
+          <span>Total suivi</span>
+          <span>{trackerRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0).toLocaleString()} FCFA</span>
+        </div>
+      </>)}
+    </div>,
+
+    // 4 - MINDSET
+    <div style={{ padding: "28px 20px" }}>
+      {sectionTitle("Mindset Money Girl", "Reprogramme ta relation avec l'argent")}
+      {[
+        { title: "Arrête de dépenser par émotion", content: "La dépense émotionnelle, c'est acheter pour combler un vide — ennui, tristesse, stress. Avant chaque achat non planifié, pose-toi 3 questions : Est-ce que j'en ai vraiment besoin ? Est-ce dans mon budget ? Est-ce que j'aurais fait cet achat hier si je n'étais pas dans cet état ?" },
+        { title: "Deviens constante avec l'argent", content: "La richesse ne vient pas d'un mois exceptionnel. Elle vient de la régularité. 5 000 FCFA épargnés chaque mois valent mieux que 50 000 FCFA épargnés une fois. Crée un système, pas une motivation." },
+        { title: "Ta routine financière (10 min/semaine)", content: "Chaque dimanche : ouvre ton application bancaire, vérifie tes dépenses, transfère ton épargne, fixe un mini-objectif pour la semaine. C'est tout. 10 minutes suffisent pour changer ta vie financière." },
+        { title: "L'argent n'est pas tabou", content: "Dans nos cultures, parler d'argent peut sembler impoli. Mais le silence financier nous coûte cher. Parle d'argent avec tes proches, tes amies. Apprends. Pose des questions. La honte ne paie pas les factures." },
+      ].map((s, i) => (
+        <div key={i} style={{ background: i % 2 === 0 ? colors.creme : colors.beige, borderRadius: 16, padding: "22px", marginBottom: 16, border: `1px solid ${colors.rose}` }}>
+          <div style={{ fontFamily: fonts.serif, fontSize: 17, color: colors.brown, marginBottom: 10 }}>✦ {s.title}</div>
+          <div style={{ fontFamily: fonts.sans, fontSize: 13, color: colors.soft, lineHeight: 1.9, marginBottom: 16 }}>{s.content}</div>
+          {label("Ma réflexion personnelle")}
+          <textarea value={mindsetNotes[Math.min(i, 2)]} onChange={e => { const n = [...mindsetNotes]; n[Math.min(i, 2)] = e.target.value; setMindsetNotes(n); }}
+            placeholder="Écris tes pensées ici..."
+            style={{ width: "100%", border: "none", borderBottom: `1.5px solid ${colors.rose}`, padding: "8px 4px", fontFamily: fonts.sans, fontSize: 13, color: colors.text, background: "transparent", outline: "none", resize: "none", minHeight: 60, boxSizing: "border-box" }} />
+        </div>
+      ))}
+    </div>,
+
+    // 5 - ROUTINE
+    <div style={{ padding: "28px 20px" }}>
+      {sectionTitle("Routine Financière Hebdomadaire", "10 minutes pour changer ta vie")}
+      <div style={{ background: colors.creme, borderRadius: 16, padding: "20px", marginBottom: 20, fontFamily: fonts.sans, fontSize: 13, color: colors.soft, lineHeight: 1.8 }}>
+        Chaque dimanche, prends 10 minutes pour toi et ton argent. Pas plus. Pas moins. C'est ta réunion hebdomadaire avec ton futur moi.
+      </div>
+      {card(<>
+        <div style={{ fontFamily: fonts.serif, fontSize: 16, color: colors.brown, marginBottom: 16 }}>✅ Ma checklist du dimanche</div>
+        {[
+          { key: "depenses", label: "J'ai vérifié mes dépenses de la semaine", val: routine.depenses, set: v => setRoutine({ ...routine, depenses: v }) },
+          { key: "ajustement", label: "J'ai ajusté mon budget si nécessaire", val: routine.ajustement, set: v => setRoutine({ ...routine, ajustement: v }) },
+        ].map(item => (
+          <div key={item.key} onClick={() => item.set(!item.val)}
+            style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: `1px solid ${colors.beige}`, cursor: "pointer" }}>
+            <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${colors.gold}`, background: item.val ? colors.gold : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              {item.val && <span style={{ color: "#fff", fontSize: 13 }}>✓</span>}
+            </div>
+            <span style={{ fontFamily: fonts.sans, fontSize: 14, color: colors.text }}>{item.label}</span>
+          </div>
+        ))}
+      </>)}
+      {card(<>
+        {label("Mon mini-objectif de la semaine")}
+        {input(routine.objectif, v => setRoutine({ ...routine, objectif: v }), "Ex: Ne pas manger au restaurant cette semaine")}
+        <div style={{ marginTop: 16 }} />
+        {label("Note financière de la semaine")}
+        <textarea value={routine.note} onChange={e => setRoutine({ ...routine, note: e.target.value })}
+          placeholder="Comment s'est passée cette semaine financièrement ?"
+          style={{ width: "100%", border: "none", borderBottom: `1.5px solid ${colors.rose}`, padding: "8px 4px", fontFamily: fonts.sans, fontSize: 13, color: colors.text, background: "transparent", outline: "none", resize: "none", minHeight: 80, boxSizing: "border-box" }} />
+      </>)}
+      <div style={{ background: colors.beige, borderRadius: 16, padding: "20px", fontFamily: fonts.sans, fontSize: 13, color: colors.soft, lineHeight: 1.9 }}>
+        <div style={{ fontFamily: fonts.serif, fontSize: 15, color: colors.brown, marginBottom: 8 }}>💖 Affirmation financière de la semaine</div>
+        "Je gère mon argent avec sagesse et élégance. Chaque centime que j'économise me rapproche de la liberté que je mérite."
+      </div>
+    </div>,
+
+    // 6 - 30 JOURS
+    <div style={{ padding: "28px 20px" }}>
+      {sectionTitle("30 Jours Glow Up Financier", "1 action par jour. Douce discipline.")}
+      <div style={{ background: colors.creme, borderRadius: 16, padding: "20px", marginBottom: 20, fontFamily: fonts.sans, fontSize: 13, color: colors.soft, lineHeight: 1.8 }}>
+        Pas de pression. Pas de perfection. Juste une petite action financière par jour pendant 30 jours. Coche chaque jour complété et célèbre tes victoires. 🌸
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {days30.map((d, i) => (
+          <div key={i} onClick={() => { const n = [...checkedDays]; n[i] = !n[i]; setCheckedDays(n); }}
+            style={{ background: checkedDays[i] ? colors.gold : "#fff", borderRadius: 12, padding: "12px", cursor: "pointer", border: `1px solid ${checkedDays[i] ? colors.gold : colors.rose}`, transition: "all 0.2s" }}>
+            <div style={{ fontFamily: fonts.sans, fontSize: 10, letterSpacing: 1, color: checkedDays[i] ? "#fff" : colors.gold, marginBottom: 4 }}>JOUR {i + 1}</div>
+            <div style={{ fontFamily: fonts.sans, fontSize: 12, color: checkedDays[i] ? "#fff" : colors.text, lineHeight: 1.5 }}>{d}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 20, textAlign: "center" }}>
+        <div style={{ fontFamily: fonts.serif, fontSize: 20, color: colors.brown }}>{checkedDays.filter(Boolean).length} / 30 jours</div>
+        {progressBar(checkedDays.filter(Boolean).length, 30, colors.gold)}
+        {checkedDays.filter(Boolean).length === 30 && <div style={{ marginTop: 12, fontFamily: fonts.serif, fontSize: 16, color: colors.gold }}>🏆 Félicitations ! Tu as complété ton Glow Up Financier !</div>}
+      </div>
+    </div>,
+
+    // 7 - CHECKLIST
+    <div style={{ padding: "28px 20px" }}>
+      {sectionTitle("Money Habits of a Wealthy Woman", "Les habitudes simples qui changent tout")}
+      <div style={{ background: colors.creme, borderRadius: 16, padding: "20px", marginBottom: 20, fontFamily: fonts.sans, fontSize: 13, color: colors.soft, lineHeight: 1.8 }}>
+        Les femmes riches ne font pas des choses extraordinaires. Elles font des choses ordinaires, extraordinairement bien. Coche les habitudes que tu as déjà adoptées. 💎
+      </div>
+      {card(<>
+        {habits.map((h, i) => (
+          <div key={i} onClick={() => { const n = [...checkedHabits]; n[i] = !n[i]; setCheckedHabits(n); }}
+            style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 0", borderBottom: i < 9 ? `1px solid ${colors.beige}` : "none", cursor: "pointer" }}>
+            <div style={{ width: 24, height: 24, borderRadius: "50%", border: `2px solid ${colors.gold}`, background: checkedHabits[i] ? colors.gold : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              {checkedHabits[i] && <span style={{ color: "#fff", fontSize: 13 }}>✓</span>}
+            </div>
+            <span style={{ fontFamily: fonts.sans, fontSize: 14, color: checkedHabits[i] ? colors.brown : colors.soft, lineHeight: 1.6, fontWeight: checkedHabits[i] ? 600 : 400 }}>{h}</span>
+          </div>
+        ))}
+      </>)}
+      <div style={{ textAlign: "center", marginTop: 8 }}>
+        <div style={{ fontFamily: fonts.serif, fontSize: 22, color: colors.brown, marginBottom: 8 }}>{checkedHabits.filter(Boolean).length} / 10 habitudes</div>
+        {progressBar(checkedHabits.filter(Boolean).length, 10, colors.gold)}
+        <div style={{ marginTop: 12, fontFamily: fonts.sans, fontSize: 12, color: colors.soft }}>
+          {checkedHabits.filter(Boolean).length < 4 ? "Tu débutes ton chemin — continue ! 🌱" :
+           checkedHabits.filter(Boolean).length < 7 ? "Tu es sur la bonne voie ! 💪" :
+           checkedHabits.filter(Boolean).length < 10 ? "Presque parfaite ! Tu brilles 🌟" : "Tu es une vraie Wealthy Woman ! 💎"}
+        </div>
+      </div>
+      {goldLine}
+      <div style={{ textAlign: "center", padding: "20px 0" }}>
+        <div style={{ fontFamily: fonts.sans, fontSize: 11, letterSpacing: 2, color: colors.gold, marginBottom: 8 }}>✦ PLUME FINANCIÈRE ✦</div>
+        <div style={{ fontFamily: fonts.serif, fontSize: 14, color: colors.soft, fontStyle: "italic" }}>
+          "L'élégance financière, c'est savoir exactement où va chaque franc — et être en paix avec ça."
+        </div>
+      </div>
+    </div>,
+  ];
+
+  return (
+    <div style={{ minHeight: "100vh", background: colors.creme, fontFamily: fonts.sans }}>
+      {nav}
+      <div style={{ maxWidth: 480, margin: "0 auto" }}>
+        {pages[active]}
+      </div>
+    </div>
+  );
+}
